@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+    - 9090:9090
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+    - cadvisor
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    container_name: cadvisor
+    ports:
+    - 8080:8080
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+    depends_on:
+    - redis
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - 6379:6379
+    depends_on:
+      - flask_app
+
+  grafana:
+    image: grafana/grafana
+    user: "1000"
+
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+
+  flask_app:
+    container_name: flask_app
+    image: flask_app_image #francescoxx/flask_live_app:1.0.0
+    build: .    #build is the path to the Dockerfile. In this case, it's the current directory, so we are using . 
+    ports:
+      - "4000:4000"
+    environment:
+      - DB_URL= postgresql://postgres:postgres@flask_db:5432/postgres
+    depends_on:
+      - flask_db
+  flask_db:
+    container_name: snuffleupagus.db.elephantsql.com
+    image: postgres:12
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=jAS6CB4VKrEWJ5mQC6lFmlzaJrd90bsq
+      - POSTGRES_USER=ljjkuuyf
+      - POSTGRES_DB=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata: {}
+    
